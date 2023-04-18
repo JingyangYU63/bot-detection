@@ -23,7 +23,7 @@ def post_process(
     centroid_x = int(moments['m10'] / moments['m00'])
     centroid_y = int(moments['m01'] / moments['m00'])
 
-    # Calculate the angle of orientation
+    # Calculate the angle of orientation by fitting a ellipse
     (x, y), (MA, ma), angle = cv2.fitEllipse(contours[0])
 
     print('Centroid:', (centroid_x, centroid_y))
@@ -47,14 +47,15 @@ def post_process(
     
     return ((centroid_x, centroid_y), angle, img)
 
-def get_centroid_and_angle(img):
+def get_centroid_and_angle(img: np.ndarray[np.uint8]) -> tuple[tuple[float, float], float, np.ndarray[np.uint8]]:
     
     cv2.imshow("Original image", img)
     cv2.waitKey(0)
     
+    # Split the image into RBG channels
     B, G, R = cv2.split(img)
     
-    # Threshold the image
+    # Threshold the image into binary form based on blue and green channels
     _, thresh_B = cv2.threshold(B, 150, 255, cv2.THRESH_BINARY)
     _, thresh_G = cv2.threshold(G, 150, 255, cv2.THRESH_BINARY)
     
@@ -102,12 +103,15 @@ class TestPostProcess(unittest.TestCase):
     
     def test_post_process(self):
     
+        # Compute centroid of the detected bot in image coordinates as well as the 2D angle of orientation in degrees
         centroid, angle, img = post_process(self.img, self.msk)
         centroid_x, centroid_y = centroid
         
+        # Retrieve the expected centroid coordinates and angle of orientation
         centroid_exp, angle_exp, img_exp = get_centroid_and_angle(self.out)
         centroid_x_exp, centroid_y_exp = centroid_exp
         
+        # Asssert the results are in tolorence range
         self.assertAlmostEqual(centroid_x, centroid_x_exp)
         self.assertAlmostEqual(centroid_y, centroid_y_exp)
         self.assertAlmostEqual(angle, angle_exp, delta=15) # assert equality in tolorence of 15 degrees
